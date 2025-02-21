@@ -4,7 +4,7 @@ import pandas as pd
 import plotly_express as px
 import seaborn as sns
 import numpy as np
-import matplotlib as pyplot
+import matplotlib.pyplot as plt
 
 df = pl.read_csv("/Users/scotttow123/Documents/Streaming_Services/Data/hulu_titles.csv")
 
@@ -16,7 +16,10 @@ missing_values = df.null_count()
 print(missing_values)
 
 print(df.describe)
-# %%
+#%%
+import polars as pl
+import plotly.express as px
+
 genres = df.select("listed_in").to_series().str.split(", ").explode()
 genre_counts = genres.value_counts()  
 
@@ -24,9 +27,12 @@ genre_counts.columns = ["Genre", "Count"]
 
 fig = px.bar(genre_counts.to_pandas(), x="Genre", y="Count", 
              labels={"Genre": "Genre", "Count": "Count"},
-             title="Most Common Genres on Hulu")
-fig.show() 
-# %%
+             title="Most Common Genres on Netflix")
+fig.show()
+#%%
+import seaborn as sns
+import matplotlib.pyplot as plt
+
 movies = df.filter(df["type"] == "Movie")
 
 movies = movies.with_columns(
@@ -36,27 +42,24 @@ movies = movies.with_columns(
     .alias("duration_minutes")
 )
 
-sns.boxplot(data=movies.to_pandas(), x="rating",
-y="duration_minutes")
+sns.boxplot(data=movies.to_pandas(), x="rating", y="duration_minutes")
 plt.title("Movie Duration by Rating")
 plt.xticks(rotation=45)
 plt.show()
 # %%
+import numpy as np
+
 durations = movies["duration_minutes"].drop_nulls().to_numpy()
 
 average_duration = np.mean(durations)
 print(f"Average Movie Duration: {average_duration} minutes")
 # %%
-countries = df['country'].dropna().str.split(',').explode()
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
 
-country_counts = countries.value_counts().head(10).reset_index()
-country_counts.columns = ['Country', 'Count']
+df = pd.read_csv("/Users/scotttow123/Documents/Streaming_Services/Data/netflix_titles.csv")
 
-fig = px.bar(country_counts, x='Country', y='Count',
-            title='Top 10 Countries Producing Netflix Content',
-            labels={'Country': 'Country', 'Count': 'Count'})
-fig.show()
-# %%
 movies = df[df['type'] == 'Movie'].dropna(subset=['duration'])
 
 movies['duration_minutes'] = movies['duration'].str.extract('(\d+)').astype(float)
@@ -68,11 +71,11 @@ plt.xlabel("Duration (Minutes)")
 plt.ylabel("Frequency")
 plt.show()
 # %%
-fig = px.scatter(movies, x='rating',
-y='duration_minutes',
-            title="Movie Duration vs. Rating",
-            labels={"rating": "Rating",
-            "duration_minutes": "Duration (Minutes)"})
+import plotly.express as px
+
+fig = px.scatter(movies, x='rating', y='duration_minutes', 
+                 title="Movie Duration vs. Rating", 
+                 labels={"rating": "Rating", "duration_minutes": "Duration (Minutes)"})
 fig.show()
 # %%
 directors = df[df['type'] == 'Movie']['director'].dropna().str.split(',').explode()
@@ -101,4 +104,17 @@ plt.title=("Release Year vs Movie Duration")
 plt.xlabel("Release Year")
 plt.ylabel("Duration (Minutes)")
 plt.show()
+# %%
+import pandas as pd
+import plotly.express as px
+
+countries = df['country'].dropna().str.split(',').explode()
+
+country_counts = countries.value_counts().head(10).reset_index()
+country_counts.columns = ['Country', 'Count']
+
+fig = px.bar(country_counts, x='Country', y='Count',
+            title='Top 10 Countries Producing Netflix Content',
+            labels={'Country': 'Country', 'Count': 'Count'})
+fig.show()
 # %%
