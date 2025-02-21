@@ -58,7 +58,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-df = pd.read_csv("/Users/scotttow123/Documents/Streaming_Services/Data/netflix_titles.csv")
+df = pd.read_csv("/Users/scotttow123/Documents/Streaming_Services/Data/amazon_prime_titles.csv")
 
 movies = df[df['type'] == 'Movie'].dropna(subset=['duration'])
 

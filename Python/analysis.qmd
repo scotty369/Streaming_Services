@@ -1,0 +1,104 @@
+```{python}
+import pandas as pd
+import plotly.express as px
+import polars as pl
+
+disney = pl.read_csv("/Users/scotttow123/Documents/Streaming_Services/Data/disney_plus_titles.csv")
+hulu = pl.read_csv("/Users/scotttow123/Documents/Streaming_Services/Data/hulu_titles.csv")
+netflix = pl.read_csv("/Users/scotttow123/Documents/Streaming_Services/Data/netflix_titles.csv")
+prime = pd.read_csv("/Users/scotttow123/Documents/Streaming_Services/Data/amazon_prime_titles.csv")
+
+disney = disney.with_columns(pl.lit("Disney+").alias("platform"))
+hulu = hulu.with_columns(pl.lit("Hulu").alias("platform"))
+netflix = netflix.with_columns(pl.lit("Netflix").alias("platform"))
+
+disney = disney.to_pandas()
+hulu = hulu.to_pandas()
+netflix = netflix.to_pandas()
+
+prime["platform"] = "Amazon Prime"
+
+data = pd.concat([disney, hulu, netflix, prime], ignore_index=True)
+
+fig_hist = px.histogram(data, x="release_year", color="platform", marginal="box", 
+                        title="Distribution of Content Release Years by Platform",
+                        opacity=0.7, nbins=30)
+fig_hist.show()
+```
+
+```{python}
+platform_counts = data['platform'].value_counts()
+
+fig_bar = px.bar(platform_counts, x=platform_counts.index, y=platform_counts.values,
+                 labels={'x': 'Platform', 'y': 'Number of Titles'},
+                 title="Total Number of Titles by Platform")
+fig_bar.show()
+```
+
+```{python}
+content_type_counts = data.groupby(['platform', 'type']).size().unstack().fillna(0)
+
+fig_type = content_type_counts.plot(kind='bar', stacked=True, figsize=(10, 6),
+                                    title="Proportion of Movies and TV Shows by Platform")
+plt.xlabel('Platform')
+plt.ylabel('Count of Titles')
+plt.show()
+```
+
+```{python}
+release_year_trends = data.groupby(['platform', 'release_year']).size().unstack().fillna(0)
+
+fig_line = px.line(release_year_trends, title="Release Year Trends by Platform", 
+                   labels={'release_year': 'Year', 'value': 'Number of Titles'})
+fig_line.show()
+```
+
+```{python}
+top_titles = data.sort_values('release_year', ascending=False).groupby('platform').head(10)
+
+fig_recent = px.bar(top_titles, x='title', y='release_year', color='platform',
+                    title="Top 10 Most Recent Titles per Platform", 
+                    labels={'title': 'Title', 'release_year': 'Release Year'})
+fig_recent.show()
+```
+
+```{python}
+fig_scatter = px.scatter(data, x="release_year", y="duration", color="platform",
+                         title="Content Duration vs. Release Year by Platform",
+                         labels={'release_year': 'Release Year', 'duration': 'Duration (minutes)'})
+fig_scatter.show()
+```
+
+```{python}
+fig_violin = px.violin(data, x="type", y="duration", color="platform", box=True, 
+                       title="Content Duration Distribution by Type and Platform")
+fig_violin.show()
+```
+
+```{python}
+content_over_time = data.groupby(['release_year', 'platform']).size().reset_index(name='count')
+
+fig_line = px.line(content_over_time, x='release_year', y='count', color='platform', 
+                   title="Content Count Over Time by Platform")
+fig_line.show()
+```
+
+```{python}
+fig_box = px.box(data, x="platform", y="duration", points="all", title="Content Duration Distribution by Platform")
+fig_box.show()
+```
+
+```{python}
+content_stream = data.groupby(['release_year', 'type']).size().unstack().fillna(0)
+
+fig_stream = px.area(content_stream, title="Movies and TV Shows Released Over Time")
+fig_stream.show()
+```
+
+```{python}
+import plotly.express as px
+
+fig_scatter_matrix = px.scatter_matrix(data, dimensions=["release_year", "duration"], color="platform",
+                                       title="Content Popularity Across Platforms")
+fig_scatter_matrix.show()
+```
