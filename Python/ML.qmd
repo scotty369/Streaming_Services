@@ -1,18 +1,21 @@
 ```{python}
 import pandas as pd
-import plotly.express as px
 import polars as pl
+import plotly.express as px
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder
+from xgboost import XGBClassifier
+from sklearn.metrics import accuracy_score, classification_report
+import numpy as np
+from datetime import datetime
+from sklearn.feature_extraction.text import TfidfVectorizer
+from scipy.sparse import hstack
 
 # Load datasets
-disney = pl.read_csv("/Users/scotttow123/Documents/Streaming_Services/Data/disney_plus_titles.csv")
-hulu = pl.read_csv("/Users/scotttow123/Documents/Streaming_Services/Data/hulu_titles.csv")
-netflix = pl.read_csv("/Users/scotttow123/Documents/Streaming_Services/Data/netflix_titles.csv")
+disney = pl.read_csv("/Users/scotttow123/Documents/Streaming_Services/Data/disney_plus_titles.csv").to_pandas()
+hulu = pl.read_csv("/Users/scotttow123/Documents/Streaming_Services/Data/hulu_titles.csv").to_pandas()
+netflix = pl.read_csv("/Users/scotttow123/Documents/Streaming_Services/Data/netflix_titles.csv").to_pandas()
 prime = pd.read_csv("/Users/scotttow123/Documents/Streaming_Services/Data/amazon_prime_titles.csv")
-
-# Convert Polars DataFrames to Pandas DataFrames for ease of use
-disney = disney.to_pandas()
-hulu = hulu.to_pandas()
-netflix = netflix.to_pandas()
 
 # Add platform column
 disney['platform'] = 'Disney+'
@@ -21,92 +24,82 @@ netflix['platform'] = 'Netflix'
 prime['platform'] = 'Amazon Prime'
 
 # Combine datasets
-data = pd.concat([disney, hulu, netflix, prime], ignore_index=True)
+df = pd.concat([disney, hulu, netflix, prime], ignore_index=True)
 
-# Inspect the data
-print(data.head())
-print(data.info())  # Check for missing values and data types
-```
+# Handle missing values
+df.fillna("Unknown", inplace=True)
 
-```{python}
-# Check for missing values
-print(data.isnull().sum())
+# Extract numeric duration
+def extract_duration(value):
+    if "Season" in value:
+        return int(value.split(" ")[0])
+    elif "min" in value:
+        return int(value.split(" ")[0])
+    return 0
 
-# Drop rows with missing data
-data = data.dropna(subset=['release_year', 'duration', 'type'])
+df['duration'] = df['duration'].apply(extract_duration)
 
-# Inspect the cleaned data
-print(data.head())
+# Extract date features
+df['date_added'] = df['date_added'].replace("Unknown", np.nan)
+df['date_added'] = pd.to_datetime(df['date_added'], errors='coerce')
+df['year_added'] = df['date_added'].dt.year.fillna(0).astype(int)
+df['month_added'] = df['date_added'].dt.month.fillna(0).astype(int)
 
-```
+# Encode categorical features
+label_enc = LabelEncoder()
+df['platform'] = label_enc.fit_transform(df['platform'])
+df['type'] = label_enc.fit_transform(df['type'])
+df['rating'] = label_enc.fit_transform(df['rating'])
+df['listed_in'] = label_enc.fit_transform(df['listed_in'])
 
-```{python}
-# One-hot encode the 'platform' column
-data = pd.get_dummies(data, columns=['platform'], drop_first=True)
+# One-hot encode country
+onehot_enc = OneHotEncoder(handle_unknown='ignore')
+country_encoded = onehot_enc.fit_transform(df[['country']])
 
-# Convert 'release_year' and 'duration' to numerical values
-# Convert duration from string to numeric (e.g., "90 min" to 90)
-data['duration'] = data['duration'].apply(lambda x: int(str(x).replace(' min', '').strip()) if isinstance(x, str) else x)
+# TF-IDF vectorization on description
+tfidf = TfidfVectorizer(max_features=500)
+description_features = tfidf.fit_transform(df['description'])
 
-# Check for any remaining missing data after processing
-print(data.isnull().sum())
+# Combine features
+X_numerical = df[['type', 'release_year', 'rating', 'listed_in', 'duration', 'year_added', 'month_added']]
+X = hstack([X_numerical, country_encoded, description_features])
+y = df['platform']
 
-```
-
-```{python}
-from sklearn.model_selection import train_test_split
-
-# Define features (X) and target (y)
-X = data.drop('type', axis=1)  # Features: all columns except 'type'
-y = data['type']  # Target variable: 'type' (Movie or TV Show)
-
-# Split the data into training and testing sets (80% train, 20% test)
+# Train-test split
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-```
-
-```{python}
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import classification_report, accuracy_score, confusion_matrix
-
-# Initialize the RandomForestClassifier model
-model = RandomForestClassifier(random_state=42)
-
-# Train the model
+# Train model
+model = XGBClassifier(use_label_encoder=False, eval_metric='mlogloss', n_estimators=100, random_state=42)
 model.fit(X_train, y_train)
 
-# Make predictions
+# Predict and evaluate
 y_pred = model.predict(X_test)
-
-# Evaluate the model
-print(f"Accuracy: {accuracy_score(y_test, y_pred)}")
-print("Classification Report:")
+accuracy = accuracy_score(y_test, y_pred)
+print(f'Accuracy: {accuracy:.2f}')
 print(classification_report(y_test, y_pred))
-
-# Confusion matrix
-print("Confusion Matrix:")
-print(confusion_matrix(y_test, y_pred))
 
 ```
 
 ```{python}
-from sklearn.model_selection import GridSearchCV
 
-# Set up parameter grid for hyperparameter tuning
-param_grid = {
-    'n_estimators': [50, 100, 200],
-    'max_depth': [10, 20, 30],
-    'min_samples_split': [2, 5, 10]
-}
+```
 
-# Initialize GridSearchCV
-grid_search = GridSearchCV(estimator=RandomForestClassifier(random_state=42), param_grid=param_grid, cv=3)
+```{python}
 
-# Fit the model with GridSearchCV
-grid_search.fit(X_train, y_train)
+```
 
-# Print the best parameters
-print(f"Best Parameters: {grid_search.best_params_}")
+```{python}
+
+
+```
+
+```{python}
+
+
+```
+
+```{python}
+
 
 ```
 
