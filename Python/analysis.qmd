@@ -102,3 +102,40 @@ fig_scatter_matrix = px.scatter_matrix(data, dimensions=["release_year", "durati
                                        title="Content Popularity Across Platforms")
 fig_scatter_matrix.show()
 ```
+
+```{python}
+import pandas as pd
+import plotly.express as px
+import polars as pl
+import plotly.figure_factory as ff
+
+disney = pl.read_csv("/Users/scotttow123/Documents/Streaming_Services/Data/disney_plus_titles.csv")
+hulu = pl.read_csv("/Users/scotttow123/Documents/Streaming_Services/Data/hulu_titles.csv")
+netflix = pl.read_csv("/Users/scotttow123/Documents/Streaming_Services/Data/netflix_titles.csv")
+prime = pd.read_csv("/Users/scotttow123/Documents/Streaming_Services/Data/amazon_prime_titles.csv")
+
+disney = disney.with_columns(pl.lit("Disney+").alias("platform"))
+hulu = hulu.with_columns(pl.lit("Hulu").alias("platform"))
+netflix = netflix.with_columns(pl.lit("Netflix").alias("platform"))
+
+disney = disney.to_pandas()
+hulu = hulu.to_pandas()
+netflix = netflix.to_pandas()
+
+prime["platform"] = "Amazon Prime"
+
+data = pd.concat([disney, hulu, netflix, prime], ignore_index=True)
+
+fig_violin = px.violin(data, x="platform", y="duration", color="type", box=True, 
+                       title="Content Duration Distribution by Platform and Type")
+fig_violin.show()
+
+fig_box_rating = px.box(data, x="platform", y="rating", color="platform",
+                       title="Rating Distribution by Platform")
+fig_box_rating.show()
+
+fig_scatter_rating = px.scatter(data, x="release_year", y="duration", color="rating",
+                                title="Release Year vs. Duration, Colored by Rating",
+                                labels={'release_year': 'Release Year', 'duration': 'Duration (minutes)'})
+fig_scatter_rating.show()
+```
